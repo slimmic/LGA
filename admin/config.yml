@@ -1,8 +1,9 @@
 # Decap CMS settings for the Ogu/Bolo LGA news admin page (open /admin/)
 backend:
   name: github
-  repo: YOUR-GITHUB-USERNAME/YOUR-REPO-NAME   # <- change this
+  repo: slimmic/LGA
   branch: main
+  auth_scope: repo
   # base_url: https://YOUR-OAUTH-PROXY.example.com   # needed for GitHub login on Netlify (see README)
 
 # Uncomment while testing on your own computer (run: npx decap-server)
