@@ -1,0 +1,83 @@
+# Decap CMS settings for the Ogu/Bolo LGA news admin page (open /admin/)
+backend:
+  name: github
+  repo: slimmic/LGA
+  branch: main
+  auth_scope: repo
+
+# Uncomment while testing on your own computer (run: npx decap-server)
+# local_backend: true
+
+# Optional approval step: staff save drafts and an admin approves before publishing.
+# Uncomment the next line (staff then need write access to the GitHub repo).
+# publish_mode: editorial_workflow
+
+media_folder: "images/uploads"
+public_folder: "/images/uploads"
+
+collections:
+  - name: "news"
+    label: "News"
+    files:
+      - name: "news"
+        label: "News posts"
+        file: "content/news.json"
+        fields:
+          - label: "Posts"
+            name: "posts"
+            widget: "list"
+            summary: "{{fields.date | date('DD MMM YYYY')}} - {{fields.title}}"
+            fields:
+              - { label: "Headline", name: "title", widget: "string" }
+              - { label: "Date and time", name: "date", widget: "datetime" }
+              - label: "Category"
+                name: "category"
+                widget: "select"
+                options: ["Government", "Development", "Health & NYSC", "Education", "Events", "Notices"]
+              - { label: "Short summary (one or two lines)", name: "summary", widget: "text" }
+              - { label: "Full story (leave a blank line between paragraphs)", name: "body", widget: "text", hint: "To put a photo between paragraphs, type [photo 2] on its own line (photo 2 = the second photo in the Photos list, photo 3 = the third, and so on). Photo 1 is always the big photo at the top." }
+              - { label: "Posted by", name: "author", widget: "string", required: false, default: "Ogu/Bolo LGA Media and Communication Unit" }
+              - { label: "Source name (if from another publisher)", name: "source", widget: "string", required: false }
+              - { label: "Source link (optional)", name: "source_url", widget: "string", required: false }
+              - label: "Photos (first one is the main photo)"
+                name: "photos"
+                widget: "list"
+                required: false
+                fields:
+                  - { label: "Photo", name: "image", widget: "image" }
+                  - { label: "Caption", name: "caption", widget: "string", required: false }
+
+  - name: "staff"
+    label: "Staff & Officials"
+    files:
+      - name: "staff"
+        label: "Staff and officials directory"
+        file: "content/staff.json"
+        fields:
+          - label: "People"
+            name: "people"
+            widget: "list"
+            summary: "{{fields.name}} - {{fields.role}}"
+            fields:
+              - { label: "Full name (with title, e.g. Hon.)", name: "name", widget: "string" }
+              - { label: "Position / job title", name: "role", widget: "string" }
+              - label: "Department"
+                name: "department"
+                widget: "select"
+                options: ["Leadership", "Legislative Council", "Administration", "Health", "Education", "Works & Infrastructure", "Agriculture", "Finance", "Environment", "Youth & Social Development", "Information & Public Relations", "Other"]
+              - { label: "Photo", name: "photo", widget: "image", required: false }
+              - { label: "Short bio (optional)", name: "bio", widget: "text", required: false }
+              - { label: "Official phone (optional)", name: "phone", widget: "string", required: false }
+              - { label: "Official email (optional)", name: "email", widget: "string", required: false }
+              - { label: "Display order (1 shows first)", name: "order", widget: "number", value_type: "int", min: 1, default: 100, required: false }
+
+  - name: "flash"
+    label: "News Flash strip"
+    files:
+      - name: "flash"
+        label: "Red News Flash strip (top of every page)"
+        file: "content/flash.json"
+        fields:
+          - { label: "Message (leave empty to keep the built-in message)", name: "message", widget: "string", required: false }
+          - { label: "Link text (e.g. Read more)", name: "link_text", widget: "string", required: false }
+          - { label: "Link address (e.g. news.html or https://...)", name: "link_url", widget: "string", required: false }
