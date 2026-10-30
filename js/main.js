@@ -32,21 +32,19 @@ document.addEventListener('DOMContentLoaded',()=>{
  // Contact form: send to Netlify Forms
  document.querySelectorAll('form[data-netlify-ajax]').forEach(f=>{f.addEventListener('submit',async e=>{e.preventDefault();const st=f.querySelector('.form-status');if(!f.reportValidity())return;const btn=f.querySelector('button[type=submit]');btn.disabled=true;if(st)st.textContent='Sending…';try{const r=await fetch('/',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(new FormData(f)).toString()});if(!r.ok)throw new Error('failed');f.reset();if(st)st.textContent='Thank you. Your message has been sent to the council.'}catch(err){if(st)st.textContent='Could not send your message right now. Please try again later.'}btn.disabled=false})});
  // Council-posted news from the admin page (content/news.json)
- const cmsList=document.querySelector('#cms-news-list'),cmsHome=document.querySelector('.news-cards');
- if(cmsList||cmsHome){
-  const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const fmt=d=>{const x=new Date(d);return isNaN(x)?'':x.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})};
+ const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const fmt=d=>{const x=new Date(d);return isNaN(x)?'':x.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})};
+const makeStory=(p,def)=>{
+  const photos=(p.photos||[]).filter(x=>x&&x.image);const used=new Set();
+  const parts=String(p.body||'').replace(/[\u200B-\u200F\u202A-\u202E\u2060\uFEFF]/g,'').replace(/\r\n?/g,'\n').replace(/\s*[\[(]\s*(?:photo|image|picture|pic)\s*(\d+)\s*[\])]\s*/gi,'\n\n[photo $1]\n\n').split(/\n\s*\n/).map(t=>t.trim()).filter(Boolean).map(t=>{const m=t.match(/^\[photo\s*(\d+)\]$/i);if(!m)return t;const n=Number(m[1]);if(n>=2&&photos[n-1]&&!used.has(n-1)){used.add(n-1);return {photo:photos[n-1]}}return null}).filter(Boolean);
+  return {title:p.title,date:def.date,by:p.author||def.by||'',source:p.source||def.source||'',url:p.source_url||'',imageUrl:photos[0]?photos[0].image:'',body:parts,contentHtml:photos.slice(1).filter((x,k)=>!used.has(k+1)).map(x=>'<figure><img src="'+esc(x.image)+'" alt="'+esc(x.caption||p.title)+'">'+(x.caption?'<figcaption>'+esc(x.caption)+'</figcaption>':'')+'</figure>').join('')};
+ };
+ const cmsList=document.querySelector('#cms-news-list'),cmsHome=document.querySelector('.news-cards'),newsLead=document.querySelector('#news-grid');
+ if(cmsList||cmsHome||newsLead){
   fetch('content/news.json',{cache:'no-store'}).then(r=>r.ok?r.json():{posts:[]}).then(data=>{
    const posts=(data.posts||[]).filter(p=>p&&p.title).sort((a,b)=>new Date(b.date)-new Date(a.date));
-   if(!posts.length)return;
-   posts.forEach((p,i)=>{
-    const photos=(p.photos||[]).filter(x=>x&&x.image);
-    const usedPhotos=new Set();
-    const bodyParts=String(p.body||'').replace(/\s*\[photo\s*(\d+)\]\s*/gi,'\n\n[photo $1]\n\n').split(/\n\s*\n/).map(t=>t.trim()).filter(Boolean).map(t=>{const m=t.match(/^\[photo\s*(\d+)\]$/i);if(!m)return t;const n=Number(m[1]);if(n>=2&&photos[n-1]&&!usedPhotos.has(n-1)){usedPhotos.add(n-1);return {photo:photos[n-1]}}return null}).filter(Boolean);
-    stories['cms-'+i]={title:p.title,date:fmt(p.date),by:p.author||'Ogu/Bolo LGA Media and Communication Unit',source:p.source||'Ogu/Bolo Local Government Area',url:p.source_url||'',imageUrl:photos[0]?photos[0].image:'',
-     body:bodyParts,
-     contentHtml:photos.slice(1).filter((x,k)=>!usedPhotos.has(k+1)).map(x=>'<figure><img src="'+esc(x.image)+'" alt="'+esc(x.caption||p.title)+'">'+(x.caption?'<figcaption>'+esc(x.caption)+'</figcaption>':'')+'</figure>').join('')};
-   });
+   if(!posts.length&&!newsLead)return;
+   posts.forEach((p,i)=>{stories['cms-'+i]=makeStory(p,{date:fmt(p.date),by:'Ogu/Bolo LGA Media and Communication Unit',source:'Ogu/Bolo Local Government Area'})});
    if(cmsList){
     posts.forEach((p,i)=>{
      const img=(p.photos&&p.photos[0]&&p.photos[0].image)||'';
@@ -55,6 +53,26 @@ document.addEventListener('DOMContentLoaded',()=>{
      card.querySelector('button').addEventListener('click',()=>readStory(stories['cms-'+i]));
      cmsList.appendChild(card);
     });
+   }
+   if(newsLead){
+    const lagos={timeZone:'Africa/Lagos'};
+    const day=d=>new Date(d).toLocaleDateString('en-GB',Object.assign({day:'numeric',month:'long',year:'numeric'},lagos));
+    const stamp=d=>day(d)+(/T\d/.test(String(d))?', '+new Date(d).toLocaleTimeString('en-GB',Object.assign({hour:'2-digit',minute:'2-digit'},lagos))+' WAT':'');
+    const staticItems=[
+     {key:'corps-health',title:stories['corps-health'].title,date:'2026-10-27T12:15:00+01:00',category:'Health & NYSC',summary:'Registration of NYSC members serving in the LGA for the council’s free healthcare scheme.',image:'images/corps-health-capturing-1.jpg'},
+     {key:'solar',title:stories.solar.title,date:'2026-07-11',category:'Energy & Infrastructure',summary:'Report on the solar mini-grid project launched in Bolo Town.',image:''},
+     {key:'councillors',title:stories.councillors.title,date:'2025-11-14',category:'Local Government',summary:'Ministry report on the swearing-in of six Supervisory Councillors in Ogu/Bolo LGA.',image:''}
+    ];
+    const cmsItems=posts.map((p,i)=>({key:'cms-'+i,title:p.title,date:p.date,category:p.category||'News',summary:p.summary||'',image:(p.photos&&p.photos[0]&&p.photos[0].image)||''}));
+    const all=cmsItems.concat(staticItems).filter(x=>!isNaN(new Date(x.date))).sort((a,b)=>new Date(b.date)-new Date(a.date));
+    const more=document.querySelector('#news-more');let shown=0;const step=6;
+    const showMore=()=>{all.slice(shown,shown+step).forEach((x,k)=>{const c=document.createElement('article');c.className='ccard';
+      c.innerHTML='<div class="cphoto'+(x.image?'':' nophoto')+'">'+(x.image?'<img src="'+esc(x.image)+'" alt="'+esc(x.title)+'" loading="lazy">':'No photo')+((shown+k)===0?'<span class="ctag">LATEST</span>':'')+'</div><div class="cbody"><div class="cmeta">'+esc(stamp(x.date))+' · '+esc(x.category)+'</div><h3>'+esc(x.title)+'</h3><p>'+esc(x.summary)+'</p><button class="clink" type="button">Read more →</button></div>';
+      c.querySelector('button').addEventListener('click',()=>readStory(stories[x.key]));newsLead.appendChild(c)});
+      shown=Math.min(all.length,shown+step);if(more)more.hidden=shown>=all.length};
+    showMore();if(more)more.addEventListener('click',showMore);
+    const box=document.querySelector('#news-boxes'),list=document.querySelector('#news-recent-list');
+    if(box&&list){all.slice(0,5).forEach(x=>{const li=document.createElement('li');const t=document.createElement('time');t.dateTime=String(x.date).slice(0,10);t.textContent=day(x.date);const b=document.createElement('button');b.type='button';b.textContent=x.title;b.addEventListener('click',()=>readStory(stories[x.key]));li.append(t,b);list.appendChild(li)});box.hidden=false}
    }
    if(cmsHome){
     const cards=posts.slice(0,3).map((p,i)=>{
@@ -67,7 +85,43 @@ document.addEventListener('DOMContentLoaded',()=>{
     cmsHome.prepend(...cards);
     while(cmsHome.children.length>3)cmsHome.lastElementChild.remove();
    }
-  }).catch(()=>{});
+  }).catch(()=>{if(newsLead)newsLead.innerHTML='<p>The news could not be loaded right now. Please refresh the page.</p>'});
+ }
+
+ // Projects page: cards from the admin page (content/projects.json)
+ const projGrid=document.querySelector('#projects-grid');
+ if(projGrid){
+  const lagos={timeZone:'Africa/Lagos'};
+  const monthYear=d=>{const x=new Date(d);return isNaN(x)?'':x.toLocaleDateString('en-GB',Object.assign({month:'long',year:'numeric'},lagos))};
+  const empty=document.querySelector('#projects-empty'),moreBtn=document.querySelector('#projects-more'),wardSel=document.querySelector('#ward-filter');
+  const chips=[...document.querySelectorAll('.cchip')];
+  let items=[],status='all',ward='all',shown=0;const step=9;
+  const filtered=()=>items.filter(p=>(status==='all'||p.status===status)&&(ward==='all'||p.ward===ward));
+  const draw=(reset)=>{
+   if(reset){projGrid.replaceChildren();shown=0}
+   const list=filtered();
+   list.slice(shown,shown+step).forEach(p=>{
+    const img=(p.photos&&p.photos[0]&&p.photos[0].image)||'';
+    const done=p.status==='Completed';
+    const when=(done?'Completed ':'Started ')+monthYear(p.date);
+    const story=makeStory(p,{date:[p.ward,p.status,when].filter(Boolean).join(' · '),by:'',source:p.source||'Ogu/Bolo Local Government Area'});
+    const c=document.createElement('article');c.className='ccard';
+    c.innerHTML='<div class="cphoto'+(img?'':' nophoto')+'">'+(img?'<img src="'+esc(img)+'" alt="'+esc(p.title)+'" loading="lazy">':'No photo yet')+'<span class="ctag '+(done?'done':'going')+'">'+(done?'COMPLETED':'ONGOING')+'</span></div><div class="cbody"><div class="cmeta">'+esc([p.ward,when].filter(Boolean).join(' · '))+'</div><h3>'+esc(p.title)+'</h3><p>'+esc(p.summary||'')+'</p><button class="clink" type="button">View details →</button></div>';
+    c.querySelector('button').addEventListener('click',()=>readStory(story));
+    projGrid.appendChild(c);
+   });
+   shown=Math.min(list.length,shown+step);
+   if(moreBtn)moreBtn.hidden=shown>=list.length;
+   if(empty)empty.hidden=list.length>0;
+  };
+  fetch('content/projects.json',{cache:'no-store'}).then(r=>r.ok?r.json():{projects:[]}).then(d=>{
+   items=(d.projects||[]).filter(p=>p&&p.title).sort((a,b)=>new Date(b.date)-new Date(a.date));
+   if(wardSel){[...new Set(items.map(p=>p.ward).filter(Boolean))].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true})).forEach(w=>{const o=document.createElement('option');o.value=w;o.textContent=w;wardSel.appendChild(o)})}
+   draw(true);
+  }).catch(()=>{if(empty)empty.hidden=false});
+  chips.forEach(b=>b.addEventListener('click',()=>{status=b.dataset.status;chips.forEach(x=>x.setAttribute('aria-pressed',String(x===b)));draw(true)}));
+  if(wardSel)wardSel.addEventListener('change',()=>{ward=wardSel.value;draw(true)});
+  if(moreBtn)moreBtn.addEventListener('click',()=>draw(false));
  }
  // Live list: fetch paginated posts from the Ministry's public WordPress feed.
  const live=document.querySelector('#live-news-list');
