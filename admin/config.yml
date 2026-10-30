@@ -47,6 +47,39 @@ collections:
                   - { label: "Photo", name: "image", widget: "image" }
                   - { label: "Caption", name: "caption", widget: "string", required: false }
 
+  - name: "projects"
+    label: "Projects"
+    files:
+      - name: "projects"
+        label: "Projects list"
+        file: "content/projects.json"
+        fields:
+          - label: "Projects"
+            name: "projects"
+            widget: "list"
+            summary: "{{fields.title}} ({{fields.status}})"
+            fields:
+              - { label: "Project name", name: "title", widget: "string" }
+              - label: "Status"
+                name: "status"
+                widget: "select"
+                options: ["Ongoing", "Completed"]
+              - label: "Ward or area"
+                name: "ward"
+                widget: "select"
+                options: ["Whole LGA", "Ward 1", "Ward 2", "Ward 3", "Ward 4", "Ward 5", "Ward 6", "Ward 7", "Ward 8", "Ward 9", "Ward 10", "Ward 11", "Ward 12"]
+              - { label: "Date (start date if Ongoing, completion date if Completed)", name: "date", widget: "datetime" }
+              - { label: "Short summary (one or two lines)", name: "summary", widget: "text" }
+              - { label: "Full details (leave a blank line between paragraphs)", name: "body", widget: "text", required: false, hint: "To put a photo between paragraphs, type [photo 2] on its own line. Photo 1 is always the main photo on the card." }
+              - { label: "Source or contractor (optional)", name: "source", widget: "string", required: false }
+              - label: "Photos (first one is the main photo)"
+                name: "photos"
+                widget: "list"
+                required: false
+                fields:
+                  - { label: "Photo", name: "image", widget: "image" }
+                  - { label: "Caption", name: "caption", widget: "string", required: false }
+
   - name: "staff"
     label: "Staff & Officials"
     files:
